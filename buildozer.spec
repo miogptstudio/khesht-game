@@ -1,0 +1,31 @@
+[app]
+
+title = Khesht
+package.name = khesht
+package.domain = studio.miogpt
+
+source.dir = .
+source.include_exts = py,png,jpg,jpeg,kv,atlas,ttf
+
+version = 1.0.0
+
+requirements = python3,kivy==2.3.0,pillow
+
+orientation = portrait
+
+icon.filename = %(source.dir)s/assets/icon.png
+presplash.filename = %(source.dir)s/assets/splash_logo.jpg
+
+fullscreen = 0
+
+android.permissions = INTERNET
+android.api = 33
+android.minapi = 24
+android.ndk = 25b
+android.accept_sdk_license = True
+# یک معماری = بیلد سریع‌تر روی GitHub
+android.archs = arm64-v8a
+
+[buildozer]
+log_level = 2
+warn_on_root = 0
