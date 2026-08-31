@@ -48,7 +48,7 @@ jobs:
         run: |
           docker run --rm \
             -v "$PWD":/home/user/hostpython \
-            kivy/buildozer android debug
+            kivy/buildozer --warn_on_root=0 android debug
 
       # ---------------------------------------------------------
       # Show generated files
