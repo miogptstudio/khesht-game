@@ -18,7 +18,7 @@ jobs:
 
       - name: Check project
         run: |
-          echo "Python project files:"
+          echo "=== Project files ==="
           ls -la
 
           if [ ! -f buildozer.spec ]; then
@@ -37,30 +37,66 @@ jobs:
             -lc '
               set -e
 
-              echo "=== Python ==="
+              echo "======================================"
+              echo " Installing Python 3.12"
+              echo "======================================"
+
+              apt-get update
+              apt-get install -y \
+                python3.12 \
+                python3.12-dev \
+                python3.12-venv
+
+              echo "=== Python versions ==="
+              python3.12 --version
               python3 --version
 
-              echo "=== Buildozer ==="
-              buildozer --version
+              echo "======================================"
+              echo " Creating Python 3.12 environment"
+              echo "======================================"
 
-              echo "=== Cython ==="
-              python3 -m pip uninstall -y Cython || true
-              python3 -m pip install --no-cache-dir "Cython<3.0"
+              python3.12 -m venv /opt/python312
+
+              /opt/python312/bin/python -m pip install --upgrade pip setuptools wheel
+
+              echo "======================================"
+              echo " Installing Buildozer"
+              echo "======================================"
+
+              /opt/python312/bin/pip install \
+                "buildozer>=1.5.0" \
+                "Cython<3.0"
+
+              echo "=== Buildozer version ==="
+              /opt/python312/bin/buildozer --version
 
               echo "=== Cython version ==="
-              cython --version
+              /opt/python312/bin/cython --version
 
-              echo "=== Cleaning old Android build ==="
-              rm -rf .buildozer/android/platform/build-*
+              echo "======================================"
+              echo " Cleaning previous build"
+              echo "======================================"
 
-              echo "=== Starting Buildozer ==="
-              buildozer -v android debug
+              rm -rf .buildozer
+              rm -rf bin
+
+              echo "======================================"
+              echo " Starting Android build"
+              echo "======================================"
+
+              /opt/python312/bin/buildozer -v android debug
+
+              echo "======================================"
+              echo " Build completed"
+              echo "======================================"
+
+              find . -type f \( -name "*.apk" -o -name "*.aab" \) -print
             '
 
       - name: Show generated files
         if: always()
         run: |
-          echo "=== APK/AAB files ==="
+          echo "=== Searching for APK/AAB ==="
           find . -type f \( -name "*.apk" -o -name "*.aab" \) -print
 
       - name: Upload APK
