@@ -19,8 +19,10 @@ jobs:
       - name: Check project
         run: |
           echo "======================================"
-          echo " Project files"
+          echo " Checking project"
           echo "======================================"
+
+          pwd
           ls -la
 
           if [ ! -f buildozer.spec ]; then
@@ -38,7 +40,7 @@ jobs:
             -v "$PWD":/app \
             -w /app \
             kivy/buildozer:latest \
-            -lc '
+            -c '
               set -e
 
               echo "======================================"
@@ -52,56 +54,27 @@ jobs:
               buildozer --version
 
               echo "======================================"
-              echo " Cleaning previous Android build"
+              echo " Installing compatible Cython"
+              echo "======================================"
+
+              python3 -m pip install --no-cache-dir --force-reinstall "Cython<3"
+
+              echo "Cython:"
+              cython --version
+
+              echo "======================================"
+              echo " Cleaning previous build"
               echo "======================================"
 
               rm -rf .buildozer
               rm -rf bin
 
               echo "======================================"
-              echo " Creating temporary buildozer.spec"
-              echo " with Python 3.12 explicitly pinned"
+              echo " Checking buildozer.spec"
               echo "======================================"
 
-              cp buildozer.spec buildozer.spec.original
-
-              python3 - <<'"'"'PY'"'"'
-              from pathlib import Path
-
-              path = Path("buildozer.spec")
-              text = path.read_text(encoding="utf-8")
-
-              old = "requirements = python3,kivy==2.3.0"
-              new = "requirements = python3==3.12.10,hostpython3==3.12.10,kivy==2.3.0"
-
-              if old in text:
-                  text = text.replace(old, new)
-              elif "requirements =" in text:
-                  import re
-                  text = re.sub(
-                      r"^requirements\s*=.*$",
-                      new,
-                      text,
-                      flags=re.MULTILINE
-                  )
-              else:
-                  raise SystemExit(
-                      "ERROR: Could not find requirements in buildozer.spec"
-                  )
-
-              path.write_text(text, encoding="utf-8")
-
-              print("Updated requirements:")
-              for line in text.splitlines():
-                  if line.strip().startswith("requirements"):
-                      print(line)
-              PY
-
-              echo "======================================"
-              echo " Verifying Python requirement"
-              echo "======================================"
-
-              grep -n "^requirements" buildozer.spec
+              grep -n "^requirements" buildozer.spec || true
+              grep -n "^android." buildozer.spec || true
 
               echo "======================================"
               echo " Starting Buildozer"
@@ -110,18 +83,18 @@ jobs:
               buildozer -v android debug
 
               echo "======================================"
-              echo " Build completed"
+              echo " BUILD SUCCESSFUL"
               echo "======================================"
 
-              echo "Generated files:"
+              echo "Generated APK/AAB files:"
               find . -type f \( -name "*.apk" -o -name "*.aab" \) -print
             '
 
-      - name: Show generated files
+      - name: Find APK
         if: always()
         run: |
           echo "======================================"
-          echo " APK / AAB files"
+          echo " Searching for APK/AAB"
           echo "======================================"
 
           find . -type f \( -name "*.apk" -o -name "*.aab" \) -print
