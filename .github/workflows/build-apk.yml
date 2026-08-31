@@ -10,18 +10,22 @@ on:
 jobs:
   build-apk:
     name: Build Khesht APK
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
 
     steps:
+      # ---------------------------------------------------------
+      # Checkout
+      # ---------------------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Verify project
+      # ---------------------------------------------------------
+      # Check project
+      # ---------------------------------------------------------
+      - name: Check project files
         run: |
-          set -e
-
           echo "======================================"
-          echo " Project"
+          echo " Project files"
           echo "======================================"
 
           ls -la
@@ -31,29 +35,46 @@ jobs:
             exit 1
           fi
 
+          if [ ! -f main.py ]; then
+            echo "ERROR: main.py not found!"
+            exit 1
+          fi
+
           echo
           echo "buildozer.spec:"
           cat buildozer.spec
 
+      # ---------------------------------------------------------
+      # Build
+      # ---------------------------------------------------------
       - name: Build APK
         run: |
-          set -e
-
-          docker pull ubuntu:24.04
+          docker pull kivy/buildozer:latest
 
           docker run --rm \
             --user root \
             -v "$PWD":/app \
             -w /app \
-            ubuntu:24.04 \
-            bash -lc '
+            kivy/buildozer:latest \
+            /bin/bash -c '
 
-              set -e
-
-              export DEBIAN_FRONTEND=noninteractive
+              set -euxo pipefail
 
               echo "======================================"
-              echo " Installing system dependencies"
+              echo " Khesht Android Build"
+              echo "======================================"
+
+              echo
+              echo "Original system Python:"
+              python3 --version || true
+
+              echo
+              echo "Available Python:"
+              ls -la /usr/bin/python* || true
+
+              echo
+              echo "======================================"
+              echo " Installing Python 3.12"
               echo "======================================"
 
               apt-get update
@@ -64,73 +85,115 @@ jobs:
                 curl \
                 wget \
                 git \
-                zip \
                 unzip \
-                openjdk-17-jdk \
-                build-essential \
-                autoconf \
-                automake \
-                libtool \
-                pkg-config \
-                zlib1g-dev \
-                libncurses5-dev \
-                libncursesw5-dev \
-                libtinfo6 \
-                libffi-dev \
-                libssl-dev \
-                cmake \
-                gettext \
-                python3.12 \
-                python3.12-dev \
-                python3.12-venv
+                zip \
+                build-essential
+
+              if ! command -v python3.12 >/dev/null 2>&1; then
+                echo "Python 3.12 is not available in the base image."
+                echo "Installing Python 3.12 from deadsnakes..."
+
+                add-apt-repository -y ppa:deadsnakes/ppa
+                apt-get update
+
+                apt-get install -y \
+                  python3.12 \
+                  python3.12-dev \
+                  python3.12-venv
+              fi
 
               echo
-              echo "======================================"
-              echo " Python"
-              echo "======================================"
-
+              echo "Python 3.12:"
               python3.12 --version
 
               echo
               echo "======================================"
-              echo " Creating Python 3.12 environment"
+              echo " Creating isolated Python 3.12"
               echo "======================================"
 
-              python3.12 -m venv /opt/buildenv
+              rm -rf /opt/khesht-python
 
-              /opt/buildenv/bin/python --version
+              python3.12 -m venv /opt/khesht-python
+
+              export VIRTUAL_ENV=/opt/khesht-python
+              export PATH="/opt/khesht-python/bin:$PATH"
+
+              python --version
+              python -m pip --version
 
               echo
               echo "======================================"
-              echo " Installing Buildozer dependencies"
+              echo " Installing build dependencies"
               echo "======================================"
 
-              /opt/buildenv/bin/python -m pip install \
-                --upgrade \
+              python -m pip install --upgrade \
                 pip \
                 setuptools \
                 wheel
 
-              /opt/buildenv/bin/python -m pip install \
-                "buildozer>=1.5,<1.7" \
+              python -m pip install \
+                "buildozer==1.6.0" \
                 "Cython==0.29.34"
 
               echo
               echo "======================================"
-              echo " Build environment"
+              echo " Verifying tools"
               echo "======================================"
 
-              /opt/buildenv/bin/python --version
-              /opt/buildenv/bin/buildozer --version
-              /opt/buildenv/bin/cython --version
+              which python
+              which buildozer
+              which cython
+
+              python --version
+              buildozer --version
+              cython --version
 
               echo
               echo "======================================"
-              echo " Cleaning old build"
+              echo " Fixing buildozer.spec"
               echo "======================================"
 
-              rm -rf .buildozer
-              rm -rf bin
+              cp buildozer.spec buildozer.spec.backup
+
+              python - <<PY
+              from pathlib import Path
+              import re
+
+              path = Path("buildozer.spec")
+
+              text = path.read_text(encoding="utf-8")
+
+              # Only change the requirements line.
+              # The original file remains untouched in Git.
+              new_requirements = (
+                  "requirements = "
+                  "python3==3.12.10,"
+                  "kivy==2.3.0"
+              )
+
+              if re.search(
+                  r"^requirements\\s*=.*$",
+                  text,
+                  flags=re.MULTILINE
+              ):
+                  text = re.sub(
+                      r"^requirements\\s*=.*$",
+                      new_requirements,
+                      text,
+                      flags=re.MULTILINE
+                  )
+              else:
+                  raise SystemExit(
+                      "ERROR: requirements line not found in buildozer.spec"
+                  )
+
+              path.write_text(text, encoding="utf-8")
+
+              print("Final requirements:")
+              for line in text.splitlines():
+                  if line.strip().startswith("requirements"):
+                      print(line)
+              PY
 
               echo
               echo "======================================"
@@ -144,10 +207,37 @@ jobs:
 
               echo
               echo "======================================"
+              echo " Cleaning previous build"
+              echo "======================================"
+
+              rm -rf .buildozer
+              rm -rf bin
+
+              mkdir -p bin
+
+              echo
+              echo "======================================"
+              echo " Environment"
+              echo "======================================"
+
+              echo "Python:"
+              python --version
+
+              echo "Buildozer:"
+              buildozer --version
+
+              echo "Cython:"
+              cython --version
+
+              echo "PATH:"
+              echo "$PATH"
+
+              echo
+              echo "======================================"
               echo " Starting Buildozer"
               echo "======================================"
 
-              /opt/buildenv/bin/buildozer -v android debug
+              buildozer -v android debug
 
               echo
               echo "======================================"
@@ -155,14 +245,24 @@ jobs:
               echo "======================================"
 
               echo
-              echo "Generated APK/AAB files:"
-              find . -type f \( \
-                -name "*.apk" -o \
-                -name "*.aab" \
-              \) -print
+              echo "Generated APK/AAB:"
+              find /app -type f \\( \
+                -name "*.apk" \
+                -o -name "*.aab" \
+              \\) -print
+
+              echo
+              echo "======================================"
+              echo " APK directory"
+              echo "======================================"
+
+              ls -lah /app/bin || true
             '
 
-      - name: Show generated files
+      # ---------------------------------------------------------
+      # Show generated files
+      # ---------------------------------------------------------
+      - name: Show generated APK
         if: always()
         run: |
           echo "======================================"
@@ -170,10 +270,17 @@ jobs:
           echo "======================================"
 
           find . -type f \( \
-            -name "*.apk" -o \
-            -name "*.aab" \
+            -name "*.apk" \
+            -o -name "*.aab" \
           \) -print
 
+          echo
+          echo "bin directory:"
+          ls -lah bin || true
+
+      # ---------------------------------------------------------
+      # Upload APK
+      # ---------------------------------------------------------
       - name: Upload APK
         if: success()
         uses: actions/upload-artifact@v4
