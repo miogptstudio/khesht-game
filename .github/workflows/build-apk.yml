@@ -28,6 +28,7 @@ jobs:
           python3 -m py_compile main.py config.py entities.py game_screen.py menu_screen.py splash_screen.py ui.py
           test -f assets/fonts/NotoSansArabic-Regular.ttf
           test -f assets/fonts/NotoSansArabic-Bold.ttf
+          test -f assets/fonts/Suls.ttf
 
       - name: Clean previous Android build state
         run: |
@@ -36,11 +37,11 @@ jobs:
 
       - name: Verify pinned python-for-android source
         run: |
-          grep -q '^p4a.branch = master$' buildozer.spec
+          grep -q '^p4a.branch = v2024.01.21$' buildozer.spec
           grep -q '^p4a.commit = 957a3e5$' buildozer.spec
-          grep -q '^requirements = python3==3.11.5,hostpython3==3.11.5,kivy==2.3.0$' buildozer.spec
+          grep -q '^requirements = python3==3.11.5,hostpython3==3.11.5,kivy==2.3.0,arabic-reshaper==3.0.0,python-bidi==0.4.2$' buildozer.spec
           grep -q '^android.archs = arm64-v8a,armeabi-v7a,x86,x86_64$' buildozer.spec
-          echo "Using python-for-android commit 957a3e5 (v2024.01.21) from master"
+          echo "Using python-for-android commit 957a3e5 (v2024.01.21) from tag"
           echo "Using Python 3.11.5 for target and host"
           echo "Building universal APK: arm64-v8a, armeabi-v7a, x86, x86_64"
 
