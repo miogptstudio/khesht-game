@@ -42,7 +42,7 @@ jobs:
           echo "main.py: OK"
 
       # ---------------------------------------------------------
-      # Set up Python 3.11 (جلوگیری از ارور Python 3.14)
+      # Set up Python 3.11
       # ---------------------------------------------------------
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -50,21 +50,56 @@ jobs:
           python-version: "3.11"
 
       # ---------------------------------------------------------
-      # Install Dependencies & Buildozer
+      # Install System Dependencies & Build tools
       # ---------------------------------------------------------
-      - name: Install Dependencies
+      - name: Install System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential libsqlite3-dev sqlite3 bzip2 libbz2-dev zlib1g-dev libssl-dev openssl libffi-dev libgdbm-dev libgdbm-compat-dev liblzma-dev libreadline-dev libncursesw5-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev lzma-dev zip unzip
-          python -m pip install --upgrade pip
+          sudo apt-get install -y \
+            build-essential \
+            git \
+            ffmpeg \
+            libtool \
+            autoconf \
+            automake \
+            autotools-dev \
+            libssl-dev \
+            libffi-dev \
+            python3-dev \
+            libsqlite3-dev \
+            sqlite3 \
+            bzip2 \
+            libbz2-dev \
+            zlib1g-dev \
+            openssl \
+            libgdbm-dev \
+            libgdbm-compat-dev \
+            liblzma-dev \
+            libreadline-dev \
+            libncursesw5-dev \
+            libxml2-dev \
+            libxmlsec1-dev \
+            lzma-dev \
+            zip \
+            unzip \
+            pkg-config
+
+          python -m pip install --upgrade pip setuptools wheel
           pip install buildozer cython==0.29.33
+
+      # ---------------------------------------------------------
+      # Clean Buildozer cache (جلوگیری از خطای فایل‌های خرابی قبلی)
+      # ---------------------------------------------------------
+      - name: Clean Buildozer build directory
+        run: |
+          buildozer clean || true
 
       # ---------------------------------------------------------
       # Build APK using Buildozer
       # ---------------------------------------------------------
       - name: Build APK with Buildozer
         run: |
-          yes | buildozer -v android debug
+          buildozer -v android debug
 
       # ---------------------------------------------------------
       # Show generated files
