@@ -42,13 +42,13 @@ jobs:
           echo "main.py exists."
 
       # ---------------------------------------------------------
-      # Build with Official Buildozer Action (Handles Docker & Cache)
+      # Build with Official Kivy Buildozer Docker Image
       # ---------------------------------------------------------
-      - name: Build APK with Buildozer
-        uses: Artemis-s/buildozer-action@v1.2
-        with:
-          command: buildozer -v android debug
-          buildozer_version: stable
+      - name: Build APK
+        run: |
+          docker run --rm \
+            -v "$PWD":/home/user/hostpython \
+            kivy/buildozer android debug
 
       # ---------------------------------------------------------
       # Show generated files
