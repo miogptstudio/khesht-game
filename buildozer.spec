@@ -10,7 +10,7 @@ source.include_patterns = assets/*
 
 version = 1.0.1
 
-requirements = python3==3.11.9,hostpython3==3.11.9,kivy==2.3.0
+requirements = python3==3.11.5,hostpython3==3.11.5,kivy==2.3.0
 
 orientation = portrait
 
@@ -24,6 +24,9 @@ android.minapi = 24
 android.ndk = 25b
 android.accept_sdk_license = True
 android.archs = arm64-v8a
+
+# Pin python-for-android to the release whose recipes default to Python 3.11.5
+p4a.branch = v2024.01.21
 
 
 [buildozer]
