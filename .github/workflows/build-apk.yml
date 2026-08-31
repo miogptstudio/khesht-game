@@ -26,7 +26,30 @@ jobs:
           test -f buildozer.spec
           test -d .github/workflows
           python3 -m py_compile main.py config.py entities.py game_screen.py menu_screen.py splash_screen.py
-          grep -q "python3==3.12.10" buildozer.spec
+          grep -q "python3==3.11.9,hostpython3==3.11.9,kivy==2.3.0" buildozer.spec
+
+      - name: Pin compatible python-for-android
+        run: |
+          python3 -m pip install --no-cache-dir --upgrade "python-for-android==2024.01.21"
+          python3 -m pip show python-for-android
+
+      - name: Clean previous Android build state
+        run: |
+          buildozer android clean || true
+          rm -rf .buildozer/android/platform/build-*
+
+      - name: Verify Python recipe versions
+        run: |
+          python3 - <<'PY2'
+          from pythonforandroid.recipes.python3 import python3
+          from pythonforandroid.recipes.hostpython3 import HostPython3Recipe
+          target = python3.version
+          host = HostPython3Recipe().version
+          print("target python recipe:", target)
+          print("host python recipe:", host)
+          assert target == "3.11.9", target
+          assert host == "3.11.9", host
+          PY2
 
       - name: Build APK
         run: |
