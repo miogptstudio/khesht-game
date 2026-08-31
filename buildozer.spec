@@ -22,8 +22,8 @@ source.include_patterns = assets/*
 version = 1.0.0
 
 # (list) Application requirements
-# تعیین نسخه 3.11.9 برای جلوگیری از تداخل C-API با پایتون 3.14
-requirements = python3==3.11.9,kivy==2.3.0
+# حذف نسخه دقیق پایتون برای هماهنگی خودکار با نسخه پایتون سیستم/داکر
+requirements = python3,kivy==2.3.0
 
 # (str) Supported orientation (one of landscape, sensorLandscape, portrait or all)
 orientation = portrait
