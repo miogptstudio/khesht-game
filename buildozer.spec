@@ -10,7 +10,7 @@ source.include_patterns = assets/*
 
 version = 1.0.2
 
-requirements = python3==3.11.5,hostpython3==3.11.5,kivy==2.3.0
+requirements = python3==3.11.5,hostpython3==3.11.5,kivy==2.3.0,arabic-reshaper==3.0.0,python-bidi==0.4.2
 
 orientation = portrait
 
@@ -27,7 +27,7 @@ android.archs = arm64-v8a,armeabi-v7a,x86,x86_64
 
 # Pin python-for-android to the exact stable release used by this project.
 p4a.url = https://github.com/kivy/python-for-android.git
-p4a.branch = master
+p4a.branch = v2024.01.21
 p4a.commit = 957a3e5
 
 

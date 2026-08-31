@@ -6,15 +6,13 @@ from kivy.metrics import dp, sp
 from kivy.uix.screenmanager import Screen
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
-from kivy.uix.button import Button
-from kivy.uix.label import Label
 from kivy.uix.image import Image
 from kivy.uix.scrollview import ScrollView
 from kivy.graphics import Color, Rectangle
 from kivy.app import App
 
 from config import STAGES
-from ui import label_kwargs, button_kwargs
+from ui import label_kwargs, button_kwargs, PersianLabel, PersianButton
 
 ICON_PATH = os.path.join(os.path.dirname(__file__), "assets", "icon.png")
 
@@ -53,7 +51,7 @@ class MenuScreen(Screen):
             icon_box.add_widget(icon)
             root.add_widget(icon_box)
 
-        title = Label(
+        title = PersianLabel(
             text="خشت",
             font_size=sp(30),
             bold=True,
@@ -66,7 +64,7 @@ class MenuScreen(Screen):
         )
         title.bind(size=lambda inst, val: setattr(inst, "text_size", val))
 
-        subtitle = Label(
+        subtitle = PersianLabel(
             text="با لمس بپر · از موانع رد شو · زنده بمان",
             font_size=sp(12),
             color=(0.7, 0.75, 0.85, 1),
@@ -81,7 +79,7 @@ class MenuScreen(Screen):
         root.add_widget(title)
         root.add_widget(subtitle)
 
-        legend = Label(
+        legend = PersianLabel(
             text="آبی = عادی   |   سبز = متحرک   |   قرمز = مرگبار",
             font_size=sp(10.5),
             color=(0.55, 0.6, 0.7, 1),
@@ -111,7 +109,7 @@ class MenuScreen(Screen):
 
         for sid in sorted(STAGES.keys()):
             cfg = STAGES[sid]
-            btn = Button(
+            btn = PersianButton(
                 text=f"{cfg['name']}\n{cfg['desc']}",
                 size_hint_y=None,
                 height=dp(64),
@@ -134,7 +132,7 @@ class MenuScreen(Screen):
         scroll.add_widget(grid)
         root.add_widget(scroll)
 
-        exit_btn = Button(
+        exit_btn = PersianButton(
             text="خروج",
             size_hint_y=None,
             height=dp(44),

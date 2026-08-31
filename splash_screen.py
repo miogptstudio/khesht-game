@@ -2,13 +2,12 @@
 from kivy.uix.screenmanager import Screen
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.image import Image
-from kivy.uix.label import Label
 from kivy.clock import Clock
 from kivy.graphics import Color, Rectangle
 from kivy.metrics import sp, dp
 import os
 
-from ui import label_kwargs
+from ui import label_kwargs, PersianLabel
 
 
 class SplashScreen(Screen):
@@ -30,7 +29,7 @@ class SplashScreen(Screen):
                 keep_ratio=True,
             ))
 
-        title_label = Label(
+        title_label = PersianLabel(
             text="خشت",
             font_size=sp(32),
             bold=True,
@@ -45,7 +44,7 @@ class SplashScreen(Screen):
         title_label.bind(size=lambda inst, val: setattr(inst, "text_size", val))
         root.add_widget(title_label)
 
-        status_label = Label(
+        status_label = PersianLabel(
             text="در حال آماده‌سازی...",
             font_size=sp(12),
             color=(0.7, 0.75, 0.85, 1),

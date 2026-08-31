@@ -5,8 +5,6 @@ import random
 from kivy.metrics import dp, sp
 from kivy.uix.screenmanager import Screen
 from kivy.uix.widget import Widget
-from kivy.uix.label import Label
-from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.properties import NumericProperty, BooleanProperty
@@ -18,7 +16,7 @@ from config import (
     GAME_FPS, LOW_RAM, LOW_RAM_MAX_OBSTACLES,
 )
 from entities import Character, Obstacle, VerticalObstacle, DeadlyObstacle
-from ui import label_kwargs, button_kwargs
+from ui import label_kwargs, button_kwargs, PersianLabel, PersianButton
 
 
 class GameWorld(Widget):
@@ -51,7 +49,7 @@ class GameWorld(Widget):
         )
         self.add_widget(self.character)
 
-        self.score_label = Label(
+        self.score_label = PersianLabel(
             text="امتیاز: 0",
             font_size=sp(18),
             bold=True,
@@ -64,7 +62,7 @@ class GameWorld(Widget):
         )
         self.add_widget(self.score_label)
 
-        self.stage_label = Label(
+        self.stage_label = PersianLabel(
             text=self.cfg["name"],
             font_size=sp(13),
             color=(0.85, 0.85, 0.95, 1),
@@ -76,7 +74,7 @@ class GameWorld(Widget):
         )
         self.add_widget(self.stage_label)
 
-        self.hint_label = Label(
+        self.hint_label = PersianLabel(
             text="لمس / کلیک = پرش",
             font_size=sp(12),
             color=(1, 1, 1, 0.45),
@@ -256,7 +254,7 @@ class GameScreen(Screen):
         self.world.pos = self.pos
         self.bind(size=self._sync_world, pos=self._sync_world)
 
-        back_btn = Button(
+        back_btn = PersianButton(
             text="منو",
             size_hint=(None, None),
             size=(dp(76), dp(42)),
@@ -316,7 +314,7 @@ class GameScreen(Screen):
 
         panel.bind(pos=_upd, size=_upd)
 
-        title = Label(
+        title = PersianLabel(
             text="تمام!",
             font_size=sp(28),
             bold=True,
@@ -327,7 +325,7 @@ class GameScreen(Screen):
             valign="middle",
             **label_kwargs(True),
         )
-        score_lbl = Label(
+        score_lbl = PersianLabel(
             text=f"امتیاز شما: {score}",
             font_size=sp(19),
             color=(1, 1, 1, 1),
@@ -337,7 +335,7 @@ class GameScreen(Screen):
             valign="middle",
             **label_kwargs(),
         )
-        stage_lbl = Label(
+        stage_lbl = PersianLabel(
             text=STAGES[self.stage_id]["name"],
             font_size=sp(13),
             color=(0.7, 0.75, 0.9, 1),
@@ -352,13 +350,13 @@ class GameScreen(Screen):
             lbl.bind(size=lambda inst, s: setattr(inst, "text_size", s))
 
         btns = BoxLayout(size_hint_y=None, height=dp(46), spacing=dp(8))
-        retry = Button(
+        retry = PersianButton(
             text="دوباره",
             background_color=(0.2, 0.65, 0.35, 1),
             font_size=sp(14),
             **button_kwargs(),
         )
-        menu = Button(
+        menu = PersianButton(
             text="منوی مراحل",
             background_color=(0.3, 0.35, 0.55, 1),
             font_size=sp(14),
