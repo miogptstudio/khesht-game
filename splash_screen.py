@@ -1,60 +1,57 @@
-"""صفحه اسپلش — لوگوی استودیو هنگام ورود به بازی"""
-
-import os
-
+"""صفحه شروع بازی خشت."""
 from kivy.uix.screenmanager import Screen
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.image import Image
 from kivy.uix.label import Label
-from kivy.graphics import Color, Rectangle
 from kivy.clock import Clock
-from kivy.animation import Animation
-
-LOGO_PATH = os.path.join(os.path.dirname(__file__), "assets", "splash_logo.jpg")
+from kivy.graphics import Color, Rectangle
+import os
 
 
 class SplashScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
         root = FloatLayout()
         with root.canvas.before:
             Color(0.02, 0.03, 0.08, 1)
-            self._bg = Rectangle(pos=root.pos, size=root.size)
-        root.bind(
-            pos=lambda i, v: setattr(self._bg, "pos", v),
-            size=lambda i, v: setattr(self._bg, "size", v),
-        )
+            self.bg = Rectangle(pos=root.pos, size=root.size)
+        root.bind(pos=self._sync_bg, size=self._sync_bg)
 
-        self.logo = Image(
-            source=LOGO_PATH if os.path.exists(LOGO_PATH) else "",
-            size_hint=(0.85, 0.55),
-            pos_hint={"center_x": 0.5, "center_y": 0.55},
-            allow_stretch=True,
-            keep_ratio=True,
-            opacity=0,
-        )
-        root.add_widget(self.logo)
+        logo_path = os.path.join(os.path.dirname(__file__), "assets", "splash.png")
+        if os.path.exists(logo_path):
+            root.add_widget(Image(
+                source=logo_path,
+                size_hint=(0.72, 0.45),
+                pos_hint={"center_x": 0.5, "center_y": 0.56},
+                allow_stretch=True,
+                keep_ratio=True,
+            ))
 
-        self.caption = Label(
-            text="در حال ورود...",
-            font_size="16sp",
-            color=(0.6, 0.75, 1, 0.85),
+        root.add_widget(Label(
+            text="خشت",
+            font_size="38sp",
+            bold=True,
+            color=(1, 0.85, 0.3, 1),
             size_hint=(1, None),
-            height=36,
-            pos_hint={"center_x": 0.5, "y": 0.12},
-            opacity=0,
-        )
-        root.add_widget(self.caption)
-
+            height=60,
+            pos_hint={"center_x": 0.5, "center_y": 0.23},
+        ))
+        root.add_widget(Label(
+            text="در حال آماده‌سازی...",
+            font_size="14sp",
+            color=(0.7, 0.75, 0.85, 1),
+            size_hint=(1, None),
+            height=35,
+            pos_hint={"center_x": 0.5, "center_y": 0.16},
+        ))
         self.add_widget(root)
 
+    def _sync_bg(self, instance, value):
+        self.bg.pos = instance.pos
+        self.bg.size = instance.size
+
     def on_enter(self, *args):
-        # ظاهر شدن نرم لوگو
-        Animation(opacity=1, duration=0.6).start(self.logo)
-        Animation(opacity=1, duration=0.8).start(self.caption)
-        # بعد از حدود ۲.۵ ثانیه برو به منو
-        Clock.schedule_once(self._go_menu, 2.5)
+        Clock.schedule_once(self._go_menu, 1.2)
 
     def _go_menu(self, dt):
         if self.manager:

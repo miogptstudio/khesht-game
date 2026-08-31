@@ -6,6 +6,8 @@
 
 import os
 
+__version__ = "1.0.1"
+
 from kivy.config import Config
 
 Config.set("graphics", "width", "480")
