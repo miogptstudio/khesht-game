@@ -22,8 +22,8 @@ source.include_patterns = assets/*
 version = 1.0.0
 
 # (list) Application requirements
-# مهم: python3 بدون درج نسخه دقیق مانند 3.12 نوشته شده تا python-for-android خودش نسخه مناسب را کامپایل کند
-requirements = python3,kivy==2.3.0
+# تعیین نسخه 3.11.9 برای جلوگیری از تداخل C-API با پایتون 3.14
+requirements = python3==3.11.9,kivy==2.3.0
 
 # (str) Supported orientation (one of landscape, sensorLandscape, portrait or all)
 orientation = portrait
@@ -61,5 +61,4 @@ android.archs = arm64-v8a
 log_level = 2
 
 # (int) Skip warning when buildozer is executed as root
-# مهم: برای جلوگیری از ارور پرسش root در GitHub Actions
 warn_on_root = 0
