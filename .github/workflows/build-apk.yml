@@ -18,13 +18,17 @@ jobs:
 
       - name: Check project
         run: |
-          echo "=== Project files ==="
+          echo "======================================"
+          echo " Project files"
+          echo "======================================"
           ls -la
 
           if [ ! -f buildozer.spec ]; then
             echo "ERROR: buildozer.spec not found!"
             exit 1
           fi
+
+          echo "buildozer.spec found."
 
       - name: Build APK
         run: |
@@ -38,65 +42,88 @@ jobs:
               set -e
 
               echo "======================================"
-              echo " Installing Python 3.12"
+              echo " Build environment"
               echo "======================================"
 
-              apt-get update
-              apt-get install -y \
-                python3.12 \
-                python3.12-dev \
-                python3.12-venv
-
-              echo "=== Python versions ==="
-              python3.12 --version
+              echo "System Python:"
               python3 --version
 
-              echo "======================================"
-              echo " Creating Python 3.12 environment"
-              echo "======================================"
-
-              python3.12 -m venv /opt/python312
-
-              /opt/python312/bin/python -m pip install --upgrade pip setuptools wheel
+              echo "Buildozer:"
+              buildozer --version
 
               echo "======================================"
-              echo " Installing Buildozer"
-              echo "======================================"
-
-              /opt/python312/bin/pip install \
-                "buildozer>=1.5.0" \
-                "Cython<3.0"
-
-              echo "=== Buildozer version ==="
-              /opt/python312/bin/buildozer --version
-
-              echo "=== Cython version ==="
-              /opt/python312/bin/cython --version
-
-              echo "======================================"
-              echo " Cleaning previous build"
+              echo " Cleaning previous Android build"
               echo "======================================"
 
               rm -rf .buildozer
               rm -rf bin
 
               echo "======================================"
-              echo " Starting Android build"
+              echo " Creating temporary buildozer.spec"
+              echo " with Python 3.12 explicitly pinned"
               echo "======================================"
 
-              /opt/python312/bin/buildozer -v android debug
+              cp buildozer.spec buildozer.spec.original
+
+              python3 - <<'"'"'PY'"'"'
+              from pathlib import Path
+
+              path = Path("buildozer.spec")
+              text = path.read_text(encoding="utf-8")
+
+              old = "requirements = python3,kivy==2.3.0"
+              new = "requirements = python3==3.12.10,hostpython3==3.12.10,kivy==2.3.0"
+
+              if old in text:
+                  text = text.replace(old, new)
+              elif "requirements =" in text:
+                  import re
+                  text = re.sub(
+                      r"^requirements\s*=.*$",
+                      new,
+                      text,
+                      flags=re.MULTILINE
+                  )
+              else:
+                  raise SystemExit(
+                      "ERROR: Could not find requirements in buildozer.spec"
+                  )
+
+              path.write_text(text, encoding="utf-8")
+
+              print("Updated requirements:")
+              for line in text.splitlines():
+                  if line.strip().startswith("requirements"):
+                      print(line)
+              PY
+
+              echo "======================================"
+              echo " Verifying Python requirement"
+              echo "======================================"
+
+              grep -n "^requirements" buildozer.spec
+
+              echo "======================================"
+              echo " Starting Buildozer"
+              echo "======================================"
+
+              buildozer -v android debug
 
               echo "======================================"
               echo " Build completed"
               echo "======================================"
 
+              echo "Generated files:"
               find . -type f \( -name "*.apk" -o -name "*.aab" \) -print
             '
 
       - name: Show generated files
         if: always()
         run: |
-          echo "=== Searching for APK/AAB ==="
+          echo "======================================"
+          echo " APK / AAB files"
+          echo "======================================"
+
           find . -type f \( -name "*.apk" -o -name "*.aab" \) -print
 
       - name: Upload APK
