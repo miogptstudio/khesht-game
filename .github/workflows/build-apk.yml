@@ -14,35 +14,13 @@ jobs:
 
     steps:
       # ---------------------------------------------------------
-      # Checkout repository
+      # 1. Checkout repository
       # ---------------------------------------------------------
       - name: Checkout code
         uses: actions/checkout@v4
 
       # ---------------------------------------------------------
-      # Verify files
-      # ---------------------------------------------------------
-      - name: Check required files
-        run: |
-          echo "======================================"
-          echo " Checking Project Files"
-          echo "======================================"
-
-          if [ ! -f buildozer.spec ]; then
-            echo "ERROR: buildozer.spec not found!"
-            exit 1
-          fi
-
-          if [ ! -f main.py ]; then
-            echo "ERROR: main.py not found!"
-            exit 1
-          fi
-
-          echo "buildozer.spec: OK"
-          echo "main.py: OK"
-
-      # ---------------------------------------------------------
-      # Set up Python 3.11
+      # 2. Set up Python 3.11
       # ---------------------------------------------------------
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -50,7 +28,7 @@ jobs:
           python-version: "3.11"
 
       # ---------------------------------------------------------
-      # Install System Dependencies & Build tools
+      # 3. Install System Dependencies (Build Tools & Libraries)
       # ---------------------------------------------------------
       - name: Install System Dependencies
         run: |
@@ -82,46 +60,28 @@ jobs:
             lzma-dev \
             zip \
             unzip \
-            pkg-config
+            pkg-config \
+            cmake
 
           python -m pip install --upgrade pip setuptools wheel
           pip install buildozer cython==0.29.33
 
       # ---------------------------------------------------------
-      # Clean Buildozer cache (جلوگیری از خطای فایل‌های خرابی قبلی)
+      # 4. Clean previous failed builds
       # ---------------------------------------------------------
       - name: Clean Buildozer build directory
         run: |
           buildozer clean || true
 
       # ---------------------------------------------------------
-      # Build APK using Buildozer
+      # 5. Build APK with Verbose Output
       # ---------------------------------------------------------
       - name: Build APK with Buildozer
         run: |
           buildozer -v android debug
 
       # ---------------------------------------------------------
-      # Show generated files
-      # ---------------------------------------------------------
-      - name: Show generated APK
-        if: always()
-        run: |
-          echo "======================================"
-          echo " Generated Files"
-          echo "======================================"
-
-          find . -type f \( \
-            -name "*.apk" \
-            -o -name "*.aab" \
-          \) -print
-
-          echo
-          echo "bin directory content:"
-          ls -lah bin || true
-
-      # ---------------------------------------------------------
-      # Upload APK Artifact
+      # 6. Upload APK Artifact
       # ---------------------------------------------------------
       - name: Upload APK Artifact
         if: success()
