@@ -9,20 +9,21 @@ on:
 
 jobs:
   build-apk:
-    name: Build APK
-    runs-on: ubuntu-latest
+    name: Build Khesht APK
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Check project
+      - name: Verify project
         run: |
+          set -e
+
           echo "======================================"
-          echo " Checking project"
+          echo " Project"
           echo "======================================"
 
-          pwd
           ls -la
 
           if [ ! -f buildozer.spec ]; then
@@ -30,74 +31,148 @@ jobs:
             exit 1
           fi
 
-          echo "buildozer.spec found."
+          echo
+          echo "buildozer.spec:"
+          cat buildozer.spec
 
       - name: Build APK
         run: |
+          set -e
+
+          docker pull ubuntu:24.04
+
           docker run --rm \
-            --entrypoint /bin/bash \
             --user root \
             -v "$PWD":/app \
             -w /app \
-            kivy/buildozer:latest \
-            -c '
+            ubuntu:24.04 \
+            bash -lc '
+
               set -e
 
+              export DEBIAN_FRONTEND=noninteractive
+
+              echo "======================================"
+              echo " Installing system dependencies"
+              echo "======================================"
+
+              apt-get update
+
+              apt-get install -y \
+                software-properties-common \
+                ca-certificates \
+                curl \
+                wget \
+                git \
+                zip \
+                unzip \
+                openjdk-17-jdk \
+                build-essential \
+                autoconf \
+                automake \
+                libtool \
+                pkg-config \
+                zlib1g-dev \
+                libncurses5-dev \
+                libncursesw5-dev \
+                libtinfo6 \
+                libffi-dev \
+                libssl-dev \
+                cmake \
+                gettext \
+                python3.12 \
+                python3.12-dev \
+                python3.12-venv
+
+              echo
+              echo "======================================"
+              echo " Python"
+              echo "======================================"
+
+              python3.12 --version
+
+              echo
+              echo "======================================"
+              echo " Creating Python 3.12 environment"
+              echo "======================================"
+
+              python3.12 -m venv /opt/buildenv
+
+              /opt/buildenv/bin/python --version
+
+              echo
+              echo "======================================"
+              echo " Installing Buildozer dependencies"
+              echo "======================================"
+
+              /opt/buildenv/bin/python -m pip install \
+                --upgrade \
+                pip \
+                setuptools \
+                wheel
+
+              /opt/buildenv/bin/python -m pip install \
+                "buildozer>=1.5,<1.7" \
+                "Cython==0.29.34"
+
+              echo
               echo "======================================"
               echo " Build environment"
               echo "======================================"
 
-              echo "System Python:"
-              python3 --version
+              /opt/buildenv/bin/python --version
+              /opt/buildenv/bin/buildozer --version
+              /opt/buildenv/bin/cython --version
 
-              echo "Buildozer:"
-              buildozer --version
-
+              echo
               echo "======================================"
-              echo " Installing compatible Cython"
-              echo "======================================"
-
-              python3 -m pip install --no-cache-dir --force-reinstall "Cython<3"
-
-              echo "Cython:"
-              cython --version
-
-              echo "======================================"
-              echo " Cleaning previous build"
+              echo " Cleaning old build"
               echo "======================================"
 
               rm -rf .buildozer
               rm -rf bin
 
+              echo
               echo "======================================"
-              echo " Checking buildozer.spec"
+              echo " Verifying buildozer.spec"
               echo "======================================"
 
-              grep -n "^requirements" buildozer.spec || true
-              grep -n "^android." buildozer.spec || true
+              grep -n "^requirements" buildozer.spec
+              grep -n "^android.api" buildozer.spec || true
+              grep -n "^android.minapi" buildozer.spec || true
+              grep -n "^android.ndk" buildozer.spec || true
 
+              echo
               echo "======================================"
               echo " Starting Buildozer"
               echo "======================================"
 
-              buildozer -v android debug
+              /opt/buildenv/bin/buildozer -v android debug
 
+              echo
               echo "======================================"
-              echo " BUILD SUCCESSFUL"
+              echo " Build completed"
               echo "======================================"
 
+              echo
               echo "Generated APK/AAB files:"
-              find . -type f \( -name "*.apk" -o -name "*.aab" \) -print
+              find . -type f \( \
+                -name "*.apk" -o \
+                -name "*.aab" \
+              \) -print
             '
 
-      - name: Find APK
+      - name: Show generated files
         if: always()
         run: |
           echo "======================================"
-          echo " Searching for APK/AAB"
+          echo " Generated files"
           echo "======================================"
 
-          find . -type f \( -name "*.apk" -o -name "*.aab" \) -print
+          find . -type f \( \
+            -name "*.apk" -o \
+            -name "*.aab" \
+          \) -print
 
       - name: Upload APK
         if: success()
