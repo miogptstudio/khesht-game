@@ -22,21 +22,35 @@ jobs:
         run: |
           test -f main.py
           test -f buildozer.spec
-          test -f requirements.txt
+          test -d .github/workflows
           python3 -m py_compile main.py config.py entities.py game_screen.py menu_screen.py splash_screen.py
 
-      - name: Build APK
-        uses: ArtemSBulgakov/buildozer-action@v1
-        id: buildozer
+      - name: Cache Buildozer downloads
+        uses: actions/cache@v4
         with:
-          workdir: .
-          buildozer_version: stable
-          command: buildozer -v android debug
+          path: |
+            .buildozer
+            .buildozer_global
+          key: buildozer-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: |
+            buildozer-${{ runner.os }}-
+
+      - name: Build APK with official Buildozer image
+        run: |
+          docker pull ghcr.io/kivy/buildozer:latest
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/home/user/hostcwd" \
+            ghcr.io/kivy/buildozer:latest android debug
+
+      - name: Show APK output
+        run: |
+          ls -lah bin/
+          test -n "$(find bin -maxdepth 1 -type f -name '*.apk' -print -quit)"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: khesht-apk
-          path: ${{ steps.buildozer.outputs.filename }}
+          path: bin/*.apk
           if-no-files-found: error
           retention-days: 30
