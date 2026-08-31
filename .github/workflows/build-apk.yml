@@ -14,15 +14,15 @@ jobs:
 
     steps:
       # ---------------------------------------------------------
-      # Checkout
+      # Checkout repository
       # ---------------------------------------------------------
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
       # ---------------------------------------------------------
-      # Check project
+      # Verify files
       # ---------------------------------------------------------
-      - name: Check project files
+      - name: Check required files
         run: |
           echo "======================================"
           echo " Checking Project Files"
@@ -38,18 +38,18 @@ jobs:
             exit 1
           fi
 
-          echo "buildozer.spec exists."
-          echo "main.py exists."
+          echo "buildozer.spec: OK"
+          echo "main.py: OK"
 
       # ---------------------------------------------------------
-      # Build with Official Kivy Buildozer Docker Image
+      # Build APK using Kivy Buildozer Docker Container
       # ---------------------------------------------------------
-      - name: Build APK
+      - name: Build APK with Buildozer
         run: |
           docker run --rm \
-            -e BUILDOZER_WARN_ON_ROOT=0 \
             -v "$PWD":/home/user/hostpython \
-            kivy/buildozer android debug
+            --entrypoint /bin/bash \
+            kivy/buildozer -c "yes | buildozer -v android debug"
 
       # ---------------------------------------------------------
       # Show generated files
@@ -58,7 +58,7 @@ jobs:
         if: always()
         run: |
           echo "======================================"
-          echo " Generated files"
+          echo " Generated Files"
           echo "======================================"
 
           find . -type f \( \
@@ -67,11 +67,11 @@ jobs:
           \) -print
 
           echo
-          echo "bin directory:"
+          echo "bin directory content:"
           ls -lah bin || true
 
       # ---------------------------------------------------------
-      # Upload APK
+      # Upload APK Artifact
       # ---------------------------------------------------------
       - name: Upload APK Artifact
         if: success()
