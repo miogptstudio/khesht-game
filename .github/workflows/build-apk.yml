@@ -42,15 +42,29 @@ jobs:
           echo "main.py: OK"
 
       # ---------------------------------------------------------
-      # Build APK using Kivy Buildozer Docker Container
+      # Set up Python 3.11 (جلوگیری از ارور Python 3.14)
+      # ---------------------------------------------------------
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # ---------------------------------------------------------
+      # Install Dependencies & Buildozer
+      # ---------------------------------------------------------
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libsqlite3-dev sqlite3 bzip2 libbz2-dev zlib1g-dev libssl-dev openssl libffi-dev libgdbm-dev libgdbm-compat-dev liblzma-dev libreadline-dev libncursesw5-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev lzma-dev zip unzip
+          python -m pip install --upgrade pip
+          pip install buildozer cython==0.29.33
+
+      # ---------------------------------------------------------
+      # Build APK using Buildozer
       # ---------------------------------------------------------
       - name: Build APK with Buildozer
         run: |
-          docker run --rm \
-            -v "$PWD":/home/user/hostpython \
-            -w /home/user/hostpython \
-            --entrypoint /bin/bash \
-            kivy/buildozer -c "yes | buildozer -v android debug"
+          yes | buildozer -v android debug
 
       # ---------------------------------------------------------
       # Show generated files
