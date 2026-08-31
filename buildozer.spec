@@ -10,7 +10,8 @@ source.include_patterns = assets/*
 
 version = 1.0.0
 
-requirements = python3==3.12.10,kivy==2.3.0
+# اصلاح شد: نسخه دقیق پایتون حذف شد تا python-for-android نسخه پایدار استاندارد را کامپایل کند
+requirements = python3,kivy==2.3.0
 
 orientation = portrait
 
