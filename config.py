@@ -11,7 +11,9 @@ GRAVITY = -0.72
 JUMP_VELOCITY = 10.5
 
 
-# بهینه‌سازی خودکار برای دستگاه‌های کم‌حافظه
+# بهینه‌سازی خودکار برای دستگاه‌های کم‌حافظه.
+# getMemoryClass سقف حافظه اپ است، نه RAM واقعی دستگاه؛ بنابراین علاوه بر آن
+# از isLowRamDevice استفاده می‌کنیم تا گوشی‌های ضعیف‌تر هم درست شناسایی شوند.
 LOW_RAM = False
 DEVICE_MEMORY_MB = 0
 try:
@@ -22,12 +24,12 @@ try:
         ActivityManager = autoclass("android.app.ActivityManager")
         am = activity.getSystemService(activity.ACTIVITY_SERVICE)
         DEVICE_MEMORY_MB = int(am.getMemoryClass())
-        LOW_RAM = DEVICE_MEMORY_MB <= 256
+        LOW_RAM = bool(am.isLowRamDevice()) or DEVICE_MEMORY_MB <= 192
 except Exception:
     pass
 
 GAME_FPS = 30 if LOW_RAM else 60
-LOW_RAM_MAX_OBSTACLES = 10
+LOW_RAM_MAX_OBSTACLES = 8
 
 # نام و تنظیمات هر مرحله
 # spacing: فاصله افقی بین موانع

@@ -1,23 +1,24 @@
-"""صفحه گیم‌پلی یک مرحله"""
+"""صفحه گیم‌پلی یک مرحله — responsive و مناسب موبایل."""
 
 import random
 
+from kivy.metrics import dp, sp
 from kivy.uix.screenmanager import Screen
 from kivy.uix.widget import Widget
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
-from kivy.properties import NumericProperty, BooleanProperty, ObjectProperty
+from kivy.properties import NumericProperty, BooleanProperty
 from kivy.clock import Clock
-from kivy.core.window import Window
-from kivy.graphics import Color, Rectangle, Line
+from kivy.graphics import Color, Rectangle
 
 from config import (
     STAGES, PLAYER_SIZE, PLAYER_X, GRAVITY, JUMP_VELOCITY,
     GAME_FPS, LOW_RAM, LOW_RAM_MAX_OBSTACLES,
 )
 from entities import Character, Obstacle, VerticalObstacle, DeadlyObstacle
+from ui import label_kwargs, button_kwargs
 
 
 class GameWorld(Widget):
@@ -35,13 +36,12 @@ class GameWorld(Widget):
         self.obstacles = []
         self._clock = None
         self._passed = set()
+        self._scale = 1.0
 
         with self.canvas.before:
             Color(0.08, 0.1, 0.16, 1)
             self.bg = Rectangle(pos=self.pos, size=self.size)
-            # خطوط تزئینی پس‌زمینه
-            Color(0.12, 0.16, 0.25, 1)
-        self.bind(pos=self._update_bg, size=self._update_bg)
+        self.bind(pos=self._update_bg, size=self._on_size)
 
         self.character = Character(
             size_x=PLAYER_SIZE,
@@ -53,39 +53,59 @@ class GameWorld(Widget):
 
         self.score_label = Label(
             text="امتیاز: 0",
-            font_size="22sp",
+            font_size=sp(18),
             bold=True,
             color=(1, 1, 1, 1),
-            size_hint=(None, None),
-            size=(200, 40),
+            size_hint=(0.42, None),
+            height=dp(38),
             halign="left",
+            valign="middle",
+            **label_kwargs(True),
         )
         self.add_widget(self.score_label)
 
         self.stage_label = Label(
             text=self.cfg["name"],
-            font_size="16sp",
+            font_size=sp(13),
             color=(0.85, 0.85, 0.95, 1),
-            size_hint=(None, None),
-            size=(280, 30),
+            size_hint=(0.60, None),
+            height=dp(32),
+            halign="left",
+            valign="middle",
+            **label_kwargs(),
         )
         self.add_widget(self.stage_label)
 
         self.hint_label = Label(
             text="لمس / کلیک = پرش",
-            font_size="14sp",
+            font_size=sp(12),
             color=(1, 1, 1, 0.45),
-            size_hint=(None, None),
-            size=(200, 28),
+            size_hint=(0.5, None),
+            height=dp(28),
+            halign="center",
+            valign="middle",
+            **label_kwargs(),
         )
         self.add_widget(self.hint_label)
+
+    def _on_size(self, *args):
+        self._update_bg()
+        self._layout_hud()
+
+    def _layout_hud(self):
+        margin = dp(10)
+        self.score_label.pos = (self.x + margin, self.top - dp(44))
+        self.stage_label.pos = (self.x + margin, self.top - dp(76))
+        self.hint_label.pos = (self.center_x - self.hint_label.width / 2, self.y + dp(8))
 
     def _update_bg(self, *args):
         self.bg.pos = self.pos
         self.bg.size = self.size
-        self.score_label.pos = (self.x + 12, self.top - 48)
-        self.stage_label.pos = (self.x + 12, self.top - 78)
-        self.hint_label.pos = (self.center_x - 100, self.y + 12)
+        self._layout_hud()
+
+    def _world_scale(self):
+        # مقیاس پایه 480×720؛ روی موبایل‌های بزرگ عناصر بازی هم متناسب رشد می‌کنند.
+        return max(0.72, min(1.65, min(self.width / 480.0, self.height / 720.0)))
 
     def start(self):
         self.reset()
@@ -103,48 +123,53 @@ class GameWorld(Widget):
         self.score = 0
         self._passed = set()
         self.score_label.text = "امتیاز: 0"
+        self._scale = self._world_scale()
 
-        # پاک کردن موانع قبلی
         for ob in list(self.obstacles):
             self.remove_widget(ob)
         self.obstacles = []
 
-        # قرار دادن بازیکن
-        self.character.size = (PLAYER_SIZE, PLAYER_SIZE)
-        self.character.size_x = PLAYER_SIZE
-        self.character.size_y = PLAYER_SIZE
-        self.character.x = PLAYER_X
-        self.character.y = self.height / 2 - PLAYER_SIZE / 2
+        psize = max(dp(20), PLAYER_SIZE * self._scale)
+        self.character.size = (psize, psize)
+        self.character.size_x = psize
+        self.character.size_y = psize
+        self.character.gravity = GRAVITY * self._scale
+        self.character.jump_velocity = JUMP_VELOCITY * self._scale
+        self.character.x = self.x + max(dp(18), PLAYER_X * self._scale)
+        self.character.y = self.y + self.height / 2 - psize / 2
         self.character.velocity_y = 0
 
         self._spawn_obstacles()
 
     def _spawn_obstacles(self):
         cfg = self.cfg
-        start_x = self.width + 60
+        scale = self._scale
+        start_x = self.width + dp(60)
         obstacle_count = min(cfg["num_obstacles"], LOW_RAM_MAX_OBSTACLES) if LOW_RAM else cfg["num_obstacles"]
+        spacing = cfg["spacing"] * scale
+
         for i in range(obstacle_count):
-            x = start_x + i * cfg["spacing"]
+            x = self.x + start_x + i * spacing
+            w = max(dp(22), random.randint(*cfg["w_range"]) * scale)
+            h = max(dp(42), random.randint(*cfg["h_range"]) * scale)
+            max_y = max(self.y, self.top - h)
+            y = random.uniform(self.y, max_y)
             roll = random.random()
-            w = random.randint(*cfg["w_range"])
-            h = random.randint(*cfg["h_range"])
-            max_y = max(0, int(self.height - h))
-            y = random.randint(0, max_y)
 
             common = dict(
                 x=x,
                 y=y,
                 size_x=w,
                 size_y=h,
-                velocity_x=cfg["speed"],
-                acceleration_x=cfg["accel"],
+                velocity_x=cfg["speed"] * scale,
+                acceleration_x=cfg["accel"] * scale,
             )
 
             if roll < cfg["deadly_chance"]:
                 ob = DeadlyObstacle(**common)
             elif roll < cfg["deadly_chance"] + cfg["vertical_chance"]:
                 ob = VerticalObstacle(
-                    velocity_y=cfg["v_speed"] * random.choice([-1, 1]),
+                    velocity_y=cfg["v_speed"] * scale * random.choice([-1, 1]),
                     **common,
                 )
             else:
@@ -169,17 +194,14 @@ class GameWorld(Widget):
 
         for ob in self.obstacles:
             ob.update()
-            # امتیاز وقتی از مانع رد شدی
             if id(ob) not in self._passed and ob.x + ob.size_x < self.character.x:
                 self._passed.add(id(ob))
                 self.score += 1
                 self.score_label.text = f"امتیاز: {self.score}"
 
-            # بازیافت مانع خارج‌شده
-            if ob.x + ob.size_x < 0:
-                # دورترین مانع را پیدا کن و بعد از آن بگذار
-                max_x = max((o.x for o in self.obstacles), default=self.width)
-                ob.recycle(self.cfg, start_x=max_x + self.cfg["spacing"])
+            if ob.x + ob.size_x < self.x:
+                max_x = max((o.x for o in self.obstacles), default=self.right)
+                ob.recycle(self.cfg, start_x=max_x + self.cfg["spacing"] * self._scale, world=self)
                 self._passed.discard(id(ob))
 
         self._check_collision()
@@ -188,8 +210,7 @@ class GameWorld(Widget):
     def _check_collision(self):
         cx, cy = self.character.x, self.character.y
         cw, ch = self.character.size_x, self.character.size_y
-        # hitbox تقریباً کامل — نسخه سخت
-        pad = 1
+        pad = max(1, self._scale)
         for ob in self.obstacles:
             if (
                 cx + pad < ob.x + ob.size_x
@@ -201,11 +222,11 @@ class GameWorld(Widget):
                 return
 
     def _check_bounds(self):
-        if self.character.y + self.character.size_y > self.height:
-            self.character.y = self.height - self.character.size_y
+        if self.character.y + self.character.size_y > self.top:
+            self.character.y = self.top - self.character.size_y
             self._trigger_game_over()
-        elif self.character.y < 0:
-            self.character.y = 0
+        elif self.character.y < self.y:
+            self.character.y = self.y
             self._trigger_game_over()
 
     def _trigger_game_over(self):
@@ -229,25 +250,24 @@ class GameScreen(Screen):
 
     def on_pre_enter(self, *args):
         self.root_layout.clear_widgets()
-        self.world = GameWorld(
-            stage_id=self.stage_id,
-            on_game_over=self._show_game_over,
-        )
+        self.world = GameWorld(stage_id=self.stage_id, on_game_over=self._show_game_over)
         self.root_layout.add_widget(self.world)
-        # اتصال اندازه به کل صفحه
         self.world.size = self.size
         self.world.pos = self.pos
         self.bind(size=self._sync_world, pos=self._sync_world)
 
-        # دکمه بازگشت به منو (بالا چپ در RTL حس، اینجا راست)
         back_btn = Button(
             text="منو",
             size_hint=(None, None),
-            size=(70, 40),
+            size=(dp(76), dp(42)),
             pos_hint={"right": 0.98, "top": 0.98},
             background_color=(0.25, 0.28, 0.4, 0.9),
-            font_size="15sp",
+            font_size=sp(13),
+            halign="center",
+            valign="middle",
+            **button_kwargs(),
         )
+        back_btn.bind(size=lambda inst, s: setattr(inst, "text_size", s))
         back_btn.bind(on_release=self._go_menu)
         self.root_layout.add_widget(back_btn)
         self.back_btn = back_btn
@@ -281,55 +301,71 @@ class GameScreen(Screen):
 
         panel = BoxLayout(
             orientation="vertical",
-            size_hint=(0.75, 0.42),
+            size_hint=(0.84, 0.44),
             pos_hint={"center_x": 0.5, "center_y": 0.5},
-            spacing=12,
-            padding=20,
+            spacing=dp(10),
+            padding=dp(16),
         )
         with panel.canvas.before:
             Color(0.05, 0.06, 0.1, 0.92)
             panel._bg = Rectangle(pos=panel.pos, size=panel.size)
 
-            def _upd(instance, value):
-                panel._bg.pos = instance.pos
-                panel._bg.size = instance.size
+        def _upd(instance, value):
+            panel._bg.pos = instance.pos
+            panel._bg.size = instance.size
 
-            panel.bind(pos=_upd, size=_upd)
+        panel.bind(pos=_upd, size=_upd)
 
         title = Label(
             text="تمام!",
-            font_size="32sp",
+            font_size=sp(28),
             bold=True,
             color=(1, 0.35, 0.35, 1),
             size_hint_y=None,
-            height=48,
+            height=dp(44),
+            halign="center",
+            valign="middle",
+            **label_kwargs(True),
         )
         score_lbl = Label(
             text=f"امتیاز شما: {score}",
-            font_size="22sp",
+            font_size=sp(19),
             color=(1, 1, 1, 1),
             size_hint_y=None,
-            height=36,
+            height=dp(34),
+            halign="center",
+            valign="middle",
+            **label_kwargs(),
         )
         stage_lbl = Label(
             text=STAGES[self.stage_id]["name"],
-            font_size="15sp",
+            font_size=sp(13),
             color=(0.7, 0.75, 0.9, 1),
             size_hint_y=None,
-            height=28,
+            height=dp(30),
+            halign="center",
+            valign="middle",
+            **label_kwargs(),
         )
 
-        btns = BoxLayout(size_hint_y=None, height=48, spacing=10)
+        for lbl in (title, score_lbl, stage_lbl):
+            lbl.bind(size=lambda inst, s: setattr(inst, "text_size", s))
+
+        btns = BoxLayout(size_hint_y=None, height=dp(46), spacing=dp(8))
         retry = Button(
             text="دوباره",
             background_color=(0.2, 0.65, 0.35, 1),
-            font_size="16sp",
+            font_size=sp(14),
+            **button_kwargs(),
         )
         menu = Button(
             text="منوی مراحل",
             background_color=(0.3, 0.35, 0.55, 1),
-            font_size="16sp",
+            font_size=sp(14),
+            **button_kwargs(),
         )
+        for btn in (retry, menu):
+            btn.bind(size=lambda inst, s: setattr(inst, "text_size", s))
         retry.bind(on_release=self._retry)
         menu.bind(on_release=self._go_menu)
         btns.add_widget(retry)

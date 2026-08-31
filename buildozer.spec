@@ -8,7 +8,7 @@ source.dir = .
 source.include_exts = py,png,jpg,jpeg,kv,atlas,ttf
 source.include_patterns = assets/*
 
-version = 1.0.1
+version = 1.0.2
 
 requirements = python3==3.11.5,hostpython3==3.11.5,kivy==2.3.0
 
@@ -25,8 +25,10 @@ android.ndk = 25b
 android.accept_sdk_license = True
 android.archs = arm64-v8a,armeabi-v7a,x86,x86_64
 
-# Pin python-for-android to the release whose recipes default to Python 3.11.5
-p4a.branch = v2024.01.21
+# Pin python-for-android to the exact stable release used by this project.
+p4a.url = https://github.com/kivy/python-for-android.git
+p4a.branch = master
+p4a.commit = 957a3e5
 
 
 [buildozer]

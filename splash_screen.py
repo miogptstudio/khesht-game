@@ -5,7 +5,10 @@ from kivy.uix.image import Image
 from kivy.uix.label import Label
 from kivy.clock import Clock
 from kivy.graphics import Color, Rectangle
+from kivy.metrics import sp, dp
 import os
+
+from ui import label_kwargs
 
 
 class SplashScreen(Screen):
@@ -27,23 +30,34 @@ class SplashScreen(Screen):
                 keep_ratio=True,
             ))
 
-        root.add_widget(Label(
+        title_label = Label(
             text="خشت",
-            font_size="38sp",
+            font_size=sp(32),
             bold=True,
             color=(1, 0.85, 0.3, 1),
+            halign="center",
+            valign="middle",
+            **label_kwargs(True),
             size_hint=(1, None),
-            height=60,
+            height=dp(54),
             pos_hint={"center_x": 0.5, "center_y": 0.23},
-        ))
-        root.add_widget(Label(
+        )
+        title_label.bind(size=lambda inst, val: setattr(inst, "text_size", val))
+        root.add_widget(title_label)
+
+        status_label = Label(
             text="در حال آماده‌سازی...",
-            font_size="14sp",
+            font_size=sp(12),
             color=(0.7, 0.75, 0.85, 1),
+            halign="center",
+            valign="middle",
+            **label_kwargs(),
             size_hint=(1, None),
-            height=35,
+            height=dp(32),
             pos_hint={"center_x": 0.5, "center_y": 0.16},
-        ))
+        )
+        status_label.bind(size=lambda inst, val: setattr(inst, "text_size", val))
+        root.add_widget(status_label)
         self.add_widget(root)
 
     def _sync_bg(self, instance, value):

@@ -6,19 +6,22 @@
 
 import os
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 
 from kivy.config import Config
+from kivy.utils import platform
 
-Config.set("graphics", "width", "480")
-Config.set("graphics", "height", "720")
-Config.set("graphics", "resizable", "0")
+# فقط برای اجرای دسکتاپ اندازه پیش‌فرض تعیین می‌شود.
+# روی Android نباید Window.size ثابت شود؛ وگرنه برنامه روی بخشی از صفحه می‌افتد.
+if platform != "android":
+    Config.set("graphics", "width", "480")
+    Config.set("graphics", "height", "720")
+    Config.set("graphics", "resizable", "1")
 
 from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, FadeTransition
 from kivy.core.window import Window
 
-from config import WINDOW_WIDTH, WINDOW_HEIGHT
 from splash_screen import SplashScreen
 from menu_screen import MenuScreen
 from game_screen import GameScreen
@@ -32,10 +35,13 @@ class KheshtApp(App):
 
     def build(self):
         Window.clearcolor = (0.02, 0.03, 0.08, 1)
-        try:
-            Window.size = (WINDOW_WIDTH, WINDOW_HEIGHT)
-        except Exception:
-            pass
+
+        # روی Android اندازه واقعی صفحه توسط سیستم تعیین می‌شود.
+        if platform != "android":
+            try:
+                Window.size = (480, 720)
+            except Exception:
+                pass
 
         sm = ScreenManager(transition=FadeTransition(duration=0.35))
         sm.add_widget(SplashScreen(name="splash"))

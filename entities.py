@@ -5,7 +5,6 @@ import random
 from kivy.uix.widget import Widget
 from kivy.properties import NumericProperty, StringProperty
 from kivy.graphics import Color, RoundedRectangle, Ellipse, Rectangle
-from kivy.core.window import Window
 
 
 class Character(Widget):
@@ -96,16 +95,20 @@ class Obstacle(Widget):
         self.x += self.velocity_x
         self._sync()
 
-    def recycle(self, stage_cfg, start_x=None):
+    def recycle(self, stage_cfg, start_x=None, world=None):
         """برگرداندن مانع به سمت راست صفحه با اندازه و نوع تصادفی."""
-        w = random.randint(*stage_cfg["w_range"])
-        h = random.randint(*stage_cfg["h_range"])
+        scale = getattr(world, "_scale", 1.0) if world is not None else 1.0
+        w = max(22, random.randint(*stage_cfg["w_range"]) * scale)
+        h = max(42, random.randint(*stage_cfg["h_range"]) * scale)
         self.size_x = w
         self.size_y = h
         self.size = (w, h)
-        self.x = start_x if start_x is not None else Window.width + random.randint(0, 40)
-        max_y = max(0, int(Window.height - h))
-        self.y = random.randint(0, max_y)
+        right = world.right if world is not None else 480
+        bottom = world.y if world is not None else 0
+        top = world.top if world is not None else 720
+        self.x = start_x if start_x is not None else right + random.randint(0, 40)
+        max_y = max(bottom, int(top - h))
+        self.y = random.uniform(bottom, max_y)
         self.velocity_x = stage_cfg["speed"]
         self._sync()
 
@@ -123,16 +126,20 @@ class VerticalObstacle(Obstacle):
 
     def update(self):
         self.y += self.velocity_y
-        if self.y + self.size_y > Window.height:
-            self.y = Window.height - self.size_y
+        # محدوده عمودی در GameWorld مدیریت می‌شود؛ این مقدار فقط fallback است.
+        parent = self.parent
+        bottom = parent.y if parent is not None else 0
+        top = parent.top if parent is not None else 720
+        if self.y + self.size_y > top:
+            self.y = top - self.size_y
             self.velocity_y = -abs(self.velocity_y)
-        elif self.y < 0:
-            self.y = 0
+        elif self.y < bottom:
+            self.y = bottom
             self.velocity_y = abs(self.velocity_y)
         super().update()
 
-    def recycle(self, stage_cfg, start_x=None):
-        super().recycle(stage_cfg, start_x)
+    def recycle(self, stage_cfg, start_x=None, world=None):
+        super().recycle(stage_cfg, start_x, world=world)
         self.velocity_y = stage_cfg["v_speed"] * random.choice([-1, 1])
 
 
@@ -144,12 +151,14 @@ class DeadlyObstacle(Obstacle):
         super().__init__(**kwargs)
         self.kind = "deadly"
 
-    def recycle(self, stage_cfg, start_x=None):
-        super().recycle(stage_cfg, start_x)
+    def recycle(self, stage_cfg, start_x=None, world=None):
+        super().recycle(stage_cfg, start_x, world=world)
         # کمی بزرگ‌تر از حالت عادی
+        world_height = world.height if world is not None else 720
+        bottom = world.y if world is not None else 0
         self.size_x = int(self.size_x * 1.15)
-        self.size_y = min(int(self.size_y * 1.2), int(Window.height * 0.45))
+        self.size_y = min(int(self.size_y * 1.2), int(world_height * 0.45))
         self.size = (self.size_x, self.size_y)
-        max_y = max(0, int(Window.height - self.size_y))
-        self.y = random.randint(0, max_y)
+        max_y = max(bottom, int((world.top if world is not None else 720) - self.size_y))
+        self.y = random.uniform(bottom, max_y)
         self._sync()
