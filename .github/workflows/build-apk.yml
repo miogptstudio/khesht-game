@@ -14,13 +14,13 @@ jobs:
 
     steps:
       # ---------------------------------------------------------
-      # 1. دریافت کدهای پروژه
+      # 1. Checkout repository
       # ---------------------------------------------------------
       - name: Checkout code
         uses: actions/checkout@v4
 
       # ---------------------------------------------------------
-      # 2. تنظیم نسخه پایتون
+      # 2. Set up Python 3.11
       # ---------------------------------------------------------
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -28,7 +28,16 @@ jobs:
           python-version: "3.11"
 
       # ---------------------------------------------------------
-      # 3. نصب کامل پیش‌نیازهای ابزار کامپایل نیتیو سیستم‌عامل
+      # 3. Set up JDK 17 (سازگار با Android Gradle جدید)
+      # ---------------------------------------------------------
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # ---------------------------------------------------------
+      # 4. Install Dependencies & Updated Build Tools
       # ---------------------------------------------------------
       - name: Install System Dependencies
         run: |
@@ -64,22 +73,22 @@ jobs:
             cmake
 
           python -m pip install --upgrade pip setuptools wheel
-          pip install buildozer cython==0.29.33
+          # استفاده از آخرین نسخه‌های هماهنگ
+          pip install --upgrade buildozer "cython>=0.29.33,<3.0" python-for-android
 
       # ---------------------------------------------------------
-      # 4. پاکسازی کش‌های ناقص و خراب قبلی
+      # 5. Full Clean
       # ---------------------------------------------------------
-      - name: Clean Buildozer Cache
+      - name: Clean Previous Builds
         run: |
+          rm -rf .buildozer
           buildozer clean || true
-          rm -rf ~/.buildozer/android/platform/build-arm64-v8a || true
 
       # ---------------------------------------------------------
-      # 5. ساخت APK (با غیرفعال‌سازی متغیرهای NDK سیستم)
+      # 6. Build APK & Capture Full Errors
       # ---------------------------------------------------------
       - name: Build APK with Buildozer
         env:
-          # حذف متغیرهای NDK پیش‌فرض سرور گیت‌هاب جهت جلوگیری از تداخل با NDK r25b
           ANDROID_NDK_HOME: ""
           ANDROID_NDK_ROOT: ""
           ANDROID_NDK: ""
@@ -88,7 +97,7 @@ jobs:
           buildozer -v android debug
 
       # ---------------------------------------------------------
-      # 6. آپلود فایل APK ساخته شده
+      # 7. Upload Artifact
       # ---------------------------------------------------------
       - name: Upload APK Artifact
         if: success()
