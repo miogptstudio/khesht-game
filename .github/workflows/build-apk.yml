@@ -6,33 +6,42 @@ on:
     branches: [main, master]
 
 jobs:
-  build-android:
-    name: Build for Android
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
+  build:
+    name: Build APK
+    runs-on: ubuntu-22.04
+    timeout-minutes: 150
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Show files
+      - name: Check project files
         run: |
           ls -la
           test -f main.py
           test -f buildozer.spec
+          test -f assets/icon.png
 
-      - name: Build with Buildozer (Docker)
-        uses: ArtemSBulgakov/buildozer-action@v1
-        id: build
-        with:
-          workdir: .
-          buildozer_version: stable
-          command: buildozer -v android debug
+      - name: Build APK with official Kivy Docker image
+        run: |
+          mkdir -p "$HOME/.buildozer"
+          docker run --rm \
+            --volume "$HOME/.buildozer":/home/user/.buildozer \
+            --volume "$PWD":/home/user/hostcwd \
+            --workdir /home/user/hostcwd \
+            kivy/buildozer:latest \
+            buildozer -v android debug
+
+      - name: List APK
+        if: always()
+        run: |
+          ls -la bin || true
+          find . -name "*.apk" -ls || true
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: khesht-apk
-          path: ${{ steps.build.outputs.filename }}
+          path: bin/*.apk
           if-no-files-found: error
           retention-days: 14
