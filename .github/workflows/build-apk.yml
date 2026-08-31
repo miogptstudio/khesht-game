@@ -12,6 +12,8 @@ jobs:
   build-android:
     name: Build Android APK
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/kivy/buildozer:latest
     timeout-minutes: 120
 
     steps:
@@ -24,33 +26,22 @@ jobs:
           test -f buildozer.spec
           test -d .github/workflows
           python3 -m py_compile main.py config.py entities.py game_screen.py menu_screen.py splash_screen.py
+          grep -q "python3==3.12.10" buildozer.spec
 
-      - name: Cache Buildozer downloads
-        uses: actions/cache@v4
-        with:
-          path: |
-            .buildozer
-            .buildozer_global
-          key: buildozer-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
-          restore-keys: |
-            buildozer-${{ runner.os }}-
-
-      - name: Build APK with official Buildozer image
+      - name: Build APK
         run: |
-          docker pull ghcr.io/kivy/buildozer:latest
-          docker run --rm \
-            -v "$GITHUB_WORKSPACE:/home/user/hostcwd" \
-            ghcr.io/kivy/buildozer:latest android debug
+          buildozer -v android debug
 
-      - name: Show APK output
+      - name: Find APK
         run: |
-          ls -lah bin/
-          test -n "$(find bin -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          mkdir -p artifact
+          find bin -type f -name "*.apk" -print -exec cp {} artifact/ \;
+          test -n "$(find artifact -type f -name "*.apk" -print -quit)"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: khesht-apk
-          path: bin/*.apk
+          path: artifact/*.apk
           if-no-files-found: error
           retention-days: 30
