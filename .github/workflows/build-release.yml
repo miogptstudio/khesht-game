@@ -1,0 +1,100 @@
+name: Build Khesht Release (Google Play)
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/kivy/buildozer:latest
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify release configuration
+        run: |
+          test -f main.py
+          test -f buildozer.spec
+          test -f assets/fonts/NotoSansArabic-Regular.ttf
+          test -f assets/icon.png
+          python3 -m py_compile main.py config.py entities.py game_screen.py menu_screen.py splash_screen.py ui.py
+          grep -q '^android.api = 36$' buildozer.spec
+          grep -q '^android.ndk = 28c$' buildozer.spec
+          grep -q '^p4a.branch = v2026.05.09$' buildozer.spec
+          grep -q '^p4a.commit = 58d2114$' buildozer.spec
+          grep -q '^android.archs = arm64-v8a,armeabi-v7a,x86,x86_64$' buildozer.spec
+
+      - name: Clean build state
+        run: |
+          buildozer android clean || true
+          rm -rf .buildozer/android/platform/build-*
+
+      - name: Prepare signing key
+        shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.KHESHT_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KHESHT_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KHESHT_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KHESHT_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASSWORD" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > khesht-upload.keystore
+            echo "Using repository upload key."
+          else
+            echo "No signing secrets configured; creating a new upload key for first release."
+            export KEYSTORE_PASSWORD="$(python3 - <<'PY'
+import secrets
+print(secrets.token_urlsafe(24))
+PY
+)"
+            export KEY_PASSWORD="$KEYSTORE_PASSWORD"
+            export KEY_ALIAS="khesht-upload"
+            keytool -genkeypair -v -keystore khesht-upload.keystore -storepass "$KEYSTORE_PASSWORD" -keypass "$KEY_PASSWORD" -alias "$KEY_ALIAS" -keyalg RSA -keysize 4096 -validity 10000 -dname "CN=Khesht Game, O=Khesht, C=DE"
+            {
+              echo "KHESHT_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
+              echo "KHESHT_KEY_ALIAS=$KEY_ALIAS"
+              echo "KHESHT_KEY_PASSWORD=$KEY_PASSWORD"
+            } > khesht-upload-key.txt
+          fi
+          echo "P4A_RELEASE_KEYSTORE=$GITHUB_WORKSPACE/khesht-upload.keystore" >> "$GITHUB_ENV"
+          echo "P4A_RELEASE_KEYSTORE_PASSWD=${KEYSTORE_PASSWORD}" >> "$GITHUB_ENV"
+          echo "P4A_RELEASE_KEYALIAS=${KEY_ALIAS}" >> "$GITHUB_ENV"
+          echo "P4A_RELEASE_KEYALIAS_PASSWD=${KEY_PASSWORD}" >> "$GITHUB_ENV"
+
+      - name: Build release AAB
+        run: |
+          buildozer -v android release
+
+      - name: Collect Play artifact
+        run: |
+          mkdir -p artifact
+          find bin -type f \( -name '*.aab' -o -name '*.apk' \) -print -exec cp {} artifact/ \;
+          test -n "$(find artifact -type f -name '*.aab' -print -quit)"
+          sha256sum artifact/*
+
+      - name: Upload Google Play bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: khesht-google-play-release
+          path: artifact/*
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload generated key information (first-run only)
+        if: ${{ hashFiles('khesht-upload-key.txt') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: khesht-upload-key-backup
+          path: |
+            khesht-upload.keystore
+            khesht-upload-key.txt
+          retention-days: 30
