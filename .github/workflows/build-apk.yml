@@ -12,6 +12,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -23,7 +24,7 @@ jobs:
           java-version: '17'
 
       - name: Build APK with Buildozer Action
-        uses: kivy/buildozer-action@v1.2.0
+        uses: ArtemSBulgakov/buildozer-action@v1.2.0
         id: build
         with:
           command: buildozer -v android debug
