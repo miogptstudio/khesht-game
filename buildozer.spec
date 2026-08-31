@@ -8,7 +8,7 @@ source.dir = .
 source.include_exts = py,png,jpg,jpeg,kv,atlas,ttf
 source.include_patterns = assets/*
 
-version = 1.0.2
+version = 1.0.3
 
 requirements = python3==3.11.5,hostpython3==3.11.5,kivy==2.3.0,arabic-reshaper==3.0.0,python-bidi==0.4.2
 
@@ -19,16 +19,17 @@ presplash.filename = %(source.dir)s/assets/splash_logo.jpg
 
 fullscreen = 0
 
-android.api = 33
+android.api = 36
 android.minapi = 24
-android.ndk = 25b
+android.ndk = 28c
 android.accept_sdk_license = True
 android.archs = arm64-v8a,armeabi-v7a,x86,x86_64
+android.release_artifact = aab
 
 # Pin python-for-android to the exact stable release used by this project.
 p4a.url = https://github.com/kivy/python-for-android.git
-p4a.branch = v2024.01.21
-p4a.commit = 957a3e5
+p4a.branch = v2026.05.09
+p4a.commit = 58d2114
 
 
 [buildozer]
