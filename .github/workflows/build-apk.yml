@@ -25,7 +25,9 @@ jobs:
           test -f main.py
           test -f buildozer.spec
           test -d .github/workflows
-          python3 -m py_compile main.py config.py entities.py game_screen.py menu_screen.py splash_screen.py
+          python3 -m py_compile main.py config.py entities.py game_screen.py menu_screen.py splash_screen.py ui.py
+          test -f assets/fonts/NotoSansArabic-Regular.ttf
+          test -f assets/fonts/NotoSansArabic-Bold.ttf
 
       - name: Clean previous Android build state
         run: |
@@ -37,7 +39,7 @@ jobs:
           grep -q '^p4a.branch = v2024.01.21$' buildozer.spec
           grep -q '^requirements = python3==3.11.5,hostpython3==3.11.5,kivy==2.3.0$' buildozer.spec
           grep -q '^android.archs = arm64-v8a,armeabi-v7a,x86,x86_64$' buildozer.spec
-          echo "Using python-for-android v2024.01.21"
+          echo "Using python-for-android commit 957a3e5 (v2024.01.21)"
           echo "Using Python 3.11.5 for target and host"
           echo "Building universal APK: arm64-v8a, armeabi-v7a, x86, x86_64"
 
