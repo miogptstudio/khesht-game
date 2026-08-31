@@ -25,10 +25,8 @@ jobs:
       - name: Check project files
         run: |
           echo "======================================"
-          echo " Project files"
+          echo " Checking Project Files"
           echo "======================================"
-
-          ls -la
 
           if [ ! -f buildozer.spec ]; then
             echo "ERROR: buildozer.spec not found!"
@@ -40,224 +38,17 @@ jobs:
             exit 1
           fi
 
-          echo
-          echo "buildozer.spec:"
-          cat buildozer.spec
+          echo "buildozer.spec exists."
+          echo "main.py exists."
 
       # ---------------------------------------------------------
-      # Build
+      # Build with Official Buildozer Action (Handles Docker & Cache)
       # ---------------------------------------------------------
-      - name: Build APK
-        run: |
-          docker pull kivy/buildozer:latest
-
-          docker run --rm \
-            --user root \
-            -v "$PWD":/app \
-            -w /app \
-            kivy/buildozer:latest \
-            /bin/bash -c '
-
-              set -euxo pipefail
-
-              echo "======================================"
-              echo " Khesht Android Build"
-              echo "======================================"
-
-              echo
-              echo "Original system Python:"
-              python3 --version || true
-
-              echo
-              echo "Available Python:"
-              ls -la /usr/bin/python* || true
-
-              echo
-              echo "======================================"
-              echo " Installing Python 3.12"
-              echo "======================================"
-
-              apt-get update
-
-              apt-get install -y \
-                software-properties-common \
-                ca-certificates \
-                curl \
-                wget \
-                git \
-                unzip \
-                zip \
-                build-essential
-
-              if ! command -v python3.12 >/dev/null 2>&1; then
-                echo "Python 3.12 is not available in the base image."
-                echo "Installing Python 3.12 from deadsnakes..."
-
-                add-apt-repository -y ppa:deadsnakes/ppa
-                apt-get update
-
-                apt-get install -y \
-                  python3.12 \
-                  python3.12-dev \
-                  python3.12-venv
-              fi
-
-              echo
-              echo "Python 3.12:"
-              python3.12 --version
-
-              echo
-              echo "======================================"
-              echo " Creating isolated Python 3.12"
-              echo "======================================"
-
-              rm -rf /opt/khesht-python
-
-              python3.12 -m venv /opt/khesht-python
-
-              export VIRTUAL_ENV=/opt/khesht-python
-              export PATH="/opt/khesht-python/bin:$PATH"
-
-              python --version
-              python -m pip --version
-
-              echo
-              echo "======================================"
-              echo " Installing build dependencies"
-              echo "======================================"
-
-              python -m pip install --upgrade \
-                pip \
-                setuptools \
-                wheel
-
-              python -m pip install \
-                "buildozer==1.6.0" \
-                "Cython==0.29.34"
-
-              echo
-              echo "======================================"
-              echo " Verifying tools"
-              echo "======================================"
-
-              which python
-              which buildozer
-              which cython
-
-              python --version
-              buildozer --version
-              cython --version
-
-              echo
-              echo "======================================"
-              echo " Fixing buildozer.spec"
-              echo "======================================"
-
-              cp buildozer.spec buildozer.spec.backup
-
-              python - <<PY
-              from pathlib import Path
-              import re
-
-              path = Path("buildozer.spec")
-
-              text = path.read_text(encoding="utf-8")
-
-              # Only change the requirements line.
-              # The original file remains untouched in Git.
-              new_requirements = (
-                  "requirements = "
-                  "python3==3.12.10,"
-                  "kivy==2.3.0"
-              )
-
-              if re.search(
-                  r"^requirements\\s*=.*$",
-                  text,
-                  flags=re.MULTILINE
-              ):
-                  text = re.sub(
-                      r"^requirements\\s*=.*$",
-                      new_requirements,
-                      text,
-                      flags=re.MULTILINE
-                  )
-              else:
-                  raise SystemExit(
-                      "ERROR: requirements line not found in buildozer.spec"
-                  )
-
-              path.write_text(text, encoding="utf-8")
-
-              print("Final requirements:")
-              for line in text.splitlines():
-                  if line.strip().startswith("requirements"):
-                      print(line)
-              PY
-
-              echo
-              echo "======================================"
-              echo " Verifying buildozer.spec"
-              echo "======================================"
-
-              grep -n "^requirements" buildozer.spec
-              grep -n "^android.api" buildozer.spec || true
-              grep -n "^android.minapi" buildozer.spec || true
-              grep -n "^android.ndk" buildozer.spec || true
-
-              echo
-              echo "======================================"
-              echo " Cleaning previous build"
-              echo "======================================"
-
-              rm -rf .buildozer
-              rm -rf bin
-
-              mkdir -p bin
-
-              echo
-              echo "======================================"
-              echo " Environment"
-              echo "======================================"
-
-              echo "Python:"
-              python --version
-
-              echo "Buildozer:"
-              buildozer --version
-
-              echo "Cython:"
-              cython --version
-
-              echo "PATH:"
-              echo "$PATH"
-
-              echo
-              echo "======================================"
-              echo " Starting Buildozer"
-              echo "======================================"
-
-              buildozer -v android debug
-
-              echo
-              echo "======================================"
-              echo " Build completed"
-              echo "======================================"
-
-              echo
-              echo "Generated APK/AAB:"
-              find /app -type f \\( \
-                -name "*.apk" \
-                -o -name "*.aab" \
-              \\) -print
-
-              echo
-              echo "======================================"
-              echo " APK directory"
-              echo "======================================"
-
-              ls -lah /app/bin || true
-            '
+      - name: Build APK with Buildozer
+        uses: Artemis-s/buildozer-action@v1.2
+        with:
+          command: buildozer -v android debug
+          buildozer_version: stable
 
       # ---------------------------------------------------------
       # Show generated files
@@ -281,7 +72,7 @@ jobs:
       # ---------------------------------------------------------
       # Upload APK
       # ---------------------------------------------------------
-      - name: Upload APK
+      - name: Upload APK Artifact
         if: success()
         uses: actions/upload-artifact@v4
         with:
