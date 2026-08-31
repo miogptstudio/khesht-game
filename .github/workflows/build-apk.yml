@@ -1,51 +1,57 @@
-name: Build APK
+name: Build Android APK
 
 on:
-  workflow_dispatch:
   push:
-    branches: [main, master]
+    branches:
+      - main
+      - master
+  workflow_dispatch:
 
 jobs:
-  build:
+  build-apk:
     name: Build APK
-    runs-on: ubuntu-22.04
-    timeout-minutes: 150
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Check project files
         run: |
-          echo "PWD=$PWD"
-          ls -la
-          test -f main.py
-          test -f buildozer.spec
-          test -d assets
+          echo "Current directory:"
+          pwd
 
-      - name: Pull Buildozer image
-        run: docker pull kivy/buildozer:latest
+          echo "Project files:"
+          ls -la
+
+          echo "Checking buildozer.spec..."
+          if [ ! -f buildozer.spec ]; then
+            echo "ERROR: buildozer.spec not found!"
+            exit 1
+          fi
 
       - name: Build APK
         run: |
           docker run --rm \
+            --entrypoint /bin/bash \
             --user root \
             -v "$PWD":/app \
             -w /app \
             kivy/buildozer:latest \
-            bash -lc "buildozer -v android debug"
+            -lc "buildozer -v android debug"
 
-      - name: List output
-        if: always()
+      - name: Find generated APK
+        if: success()
         run: |
-          ls -la
-          ls -la bin || true
-          find . -name "*.apk" -ls || true
+          echo "Searching for APK files..."
+          find . -type f \( -name "*.apk" -o -name "*.aab" \) -print
 
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: khesht-apk
-          path: bin/*.apk
+          name: android-apk
+          path: |
+            bin/*.apk
+            bin/*.aab
           if-no-files-found: error
-          retention-days: 14
