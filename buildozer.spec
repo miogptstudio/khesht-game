@@ -10,7 +10,7 @@ source.include_patterns = assets/*
 
 version = 1.0.0
 
-requirements = python3,kivy==2.3.0
+requirements = python3==3.12.10,kivy==2.3.0
 
 orientation = portrait
 
@@ -20,6 +20,7 @@ presplash.filename = %(source.dir)s/assets/splash_logo.jpg
 fullscreen = 0
 
 android.permissions = INTERNET
+
 android.api = 33
 android.minapi = 24
 android.ndk = 25b
@@ -27,5 +28,6 @@ android.accept_sdk_license = True
 android.archs = arm64-v8a
 
 [buildozer]
+
 log_level = 2
 warn_on_root = 0
