@@ -13,14 +13,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # ---------------------------------------------------------
+      # 1. دریافت کدهای پروژه
+      # ---------------------------------------------------------
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # ---------------------------------------------------------
+      # 2. تنظیم نسخه پایتون
+      # ---------------------------------------------------------
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
+      # ---------------------------------------------------------
+      # 3. نصب کامل پیش‌نیازهای ابزار کامپایل نیتیو سیستم‌عامل
+      # ---------------------------------------------------------
       - name: Install System Dependencies
         run: |
           sudo apt-get update
@@ -55,22 +64,32 @@ jobs:
             cmake
 
           python -m pip install --upgrade pip setuptools wheel
-          # استفاده از نسخه پایدار Buildozer و Cython
           pip install buildozer cython==0.29.33
 
+      # ---------------------------------------------------------
+      # 4. پاکسازی کش‌های ناقص و خراب قبلی
+      # ---------------------------------------------------------
       - name: Clean Buildozer Cache
         run: |
           buildozer clean || true
+          rm -rf ~/.buildozer/android/platform/build-arm64-v8a || true
 
+      # ---------------------------------------------------------
+      # 5. ساخت APK (با غیرفعال‌سازی متغیرهای NDK سیستم)
+      # ---------------------------------------------------------
       - name: Build APK with Buildozer
         env:
-          # حذف متغیرهای NDK سیستم جهت اجبار Buildozer به استفاده از r25b خود
+          # حذف متغیرهای NDK پیش‌فرض سرور گیت‌هاب جهت جلوگیری از تداخل با NDK r25b
           ANDROID_NDK_HOME: ""
           ANDROID_NDK_ROOT: ""
           ANDROID_NDK: ""
+          ANDROID_NDK_LATEST_HOME: ""
         run: |
           buildozer -v android debug
 
+      # ---------------------------------------------------------
+      # 6. آپلود فایل APK ساخته شده
+      # ---------------------------------------------------------
       - name: Upload APK Artifact
         if: success()
         uses: actions/upload-artifact@v4
