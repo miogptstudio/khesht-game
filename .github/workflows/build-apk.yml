@@ -16,15 +16,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Check project files
+      - name: Check project
         run: |
-          echo "Current directory:"
-          pwd
-
-          echo "Project files:"
+          echo "Python project files:"
           ls -la
 
-          echo "Checking buildozer.spec..."
           if [ ! -f buildozer.spec ]; then
             echo "ERROR: buildozer.spec not found!"
             exit 1
@@ -38,19 +34,40 @@ jobs:
             -v "$PWD":/app \
             -w /app \
             kivy/buildozer:latest \
-            -lc "buildozer -v android debug"
+            -lc '
+              set -e
 
-      - name: Find generated APK
-        if: success()
+              echo "=== Python ==="
+              python3 --version
+
+              echo "=== Buildozer ==="
+              buildozer --version
+
+              echo "=== Cython ==="
+              python3 -m pip uninstall -y Cython || true
+              python3 -m pip install --no-cache-dir "Cython<3.0"
+
+              echo "=== Cython version ==="
+              cython --version
+
+              echo "=== Cleaning old Android build ==="
+              rm -rf .buildozer/android/platform/build-*
+
+              echo "=== Starting Buildozer ==="
+              buildozer -v android debug
+            '
+
+      - name: Show generated files
+        if: always()
         run: |
-          echo "Searching for APK files..."
+          echo "=== APK/AAB files ==="
           find . -type f \( -name "*.apk" -o -name "*.aab" \) -print
 
       - name: Upload APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: android-apk
+          name: khesht-android
           path: |
             bin/*.apk
             bin/*.aab
