@@ -23,7 +23,7 @@ android.api = 33
 android.minapi = 24
 android.ndk = 25b
 android.accept_sdk_license = True
-android.archs = arm64-v8a
+android.archs = arm64-v8a,armeabi-v7a,x86,x86_64
 
 # Pin python-for-android to the release whose recipes default to Python 3.11.5
 p4a.branch = v2024.01.21

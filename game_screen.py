@@ -13,7 +13,10 @@ from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.graphics import Color, Rectangle, Line
 
-from config import STAGES, PLAYER_SIZE, PLAYER_X, GRAVITY, JUMP_VELOCITY
+from config import (
+    STAGES, PLAYER_SIZE, PLAYER_X, GRAVITY, JUMP_VELOCITY,
+    GAME_FPS, LOW_RAM, LOW_RAM_MAX_OBSTACLES,
+)
 from entities import Character, Obstacle, VerticalObstacle, DeadlyObstacle
 
 
@@ -38,7 +41,6 @@ class GameWorld(Widget):
             self.bg = Rectangle(pos=self.pos, size=self.size)
             # خطوط تزئینی پس‌زمینه
             Color(0.12, 0.16, 0.25, 1)
-            self.grid_lines = []
         self.bind(pos=self._update_bg, size=self._update_bg)
 
         self.character = Character(
@@ -89,7 +91,7 @@ class GameWorld(Widget):
         self.reset()
         if self._clock:
             self._clock.cancel()
-        self._clock = Clock.schedule_interval(self.update, 1 / 60)
+        self._clock = Clock.schedule_interval(self.update, 1 / GAME_FPS)
 
     def stop(self):
         if self._clock:
@@ -120,7 +122,8 @@ class GameWorld(Widget):
     def _spawn_obstacles(self):
         cfg = self.cfg
         start_x = self.width + 60
-        for i in range(cfg["num_obstacles"]):
+        obstacle_count = min(cfg["num_obstacles"], LOW_RAM_MAX_OBSTACLES) if LOW_RAM else cfg["num_obstacles"]
+        for i in range(obstacle_count):
             x = start_x + i * cfg["spacing"]
             roll = random.random()
             w = random.randint(*cfg["w_range"])

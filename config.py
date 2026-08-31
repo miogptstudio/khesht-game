@@ -10,6 +10,25 @@ PLAYER_X = 70
 GRAVITY = -0.72
 JUMP_VELOCITY = 10.5
 
+
+# بهینه‌سازی خودکار برای دستگاه‌های کم‌حافظه
+LOW_RAM = False
+DEVICE_MEMORY_MB = 0
+try:
+    from jnius import autoclass
+    ActivityThread = autoclass("android.app.ActivityThread")
+    activity = ActivityThread.currentActivity()
+    if activity is not None:
+        ActivityManager = autoclass("android.app.ActivityManager")
+        am = activity.getSystemService(activity.ACTIVITY_SERVICE)
+        DEVICE_MEMORY_MB = int(am.getMemoryClass())
+        LOW_RAM = DEVICE_MEMORY_MB <= 256
+except Exception:
+    pass
+
+GAME_FPS = 30 if LOW_RAM else 60
+LOW_RAM_MAX_OBSTACLES = 10
+
 # نام و تنظیمات هر مرحله
 # spacing: فاصله افقی بین موانع
 # speed: سرعت پایه موانع (منفی = به چپ)
