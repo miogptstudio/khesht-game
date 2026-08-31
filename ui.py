@@ -67,20 +67,29 @@ class PersianLabel(Label):
     def __init__(self, **kwargs):
         original = kwargs.get("text", "")
         kwargs.setdefault("font_name", _font_path(False))
-        super().__init__(**kwargs)
+        # Kivy may dispatch on_text while Label/Button is being initialized.
+        # The guard must exist BEFORE super().__init__().
         self._raw_text = original
+        self._shaping_guard = True
+        super().__init__(**kwargs)
         self._shaping_guard = False
+        # Apply shaping once after initialization.
+        if original:
+            self._set_shaped_text(original)
 
-    def on_text(self, instance, value):
-        if self._shaping_guard:
-            return
+    def _set_shaped_text(self, value):
         shaped = shape_farsi(value)
-        if shaped != value:
+        if shaped != self.text:
             self._shaping_guard = True
             try:
                 self.text = shaped
             finally:
                 self._shaping_guard = False
+
+    def on_text(self, instance, value):
+        if self._shaping_guard:
+            return
+        self._set_shaped_text(value)
 
 
 class PersianButton(Button):
@@ -88,20 +97,27 @@ class PersianButton(Button):
     def __init__(self, **kwargs):
         original = kwargs.get("text", "")
         kwargs.setdefault("font_name", _font_path(False))
-        super().__init__(**kwargs)
+        # Kivy may dispatch on_text while Button is being initialized.
         self._raw_text = original
+        self._shaping_guard = True
+        super().__init__(**kwargs)
         self._shaping_guard = False
+        if original:
+            self._set_shaped_text(original)
 
-    def on_text(self, instance, value):
-        if self._shaping_guard:
-            return
+    def _set_shaped_text(self, value):
         shaped = shape_farsi(value)
-        if shaped != value:
+        if shaped != self.text:
             self._shaping_guard = True
             try:
                 self.text = shaped
             finally:
                 self._shaping_guard = False
+
+    def on_text(self, instance, value):
+        if self._shaping_guard:
+            return
+        self._set_shaped_text(value)
 
 
 def prepare_text(widget, rtl=True):
